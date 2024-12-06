@@ -37,4 +37,61 @@ defmodule D4 do
     diag = count_diag(m)
     horizontal + vertical + diag
   end
+
+  def count_x_mas(l), do: count_x_mas(l, 0)
+  def count_x_mas([[] | _], acc), do: acc
+
+  def count_x_mas(
+        [
+          ["M", _, "S" | _],
+          [_, "A", _ | _],
+          ["M", _, "S" | _]
+        ] = l,
+        acc
+      ),
+      do: count_x_mas(l |> Enum.map(&tl/1), acc + 1)
+
+  def count_x_mas(
+        [
+          ["S", _, "M" | _],
+          [_, "A", _ | _],
+          ["S", _, "M" | _]
+        ] = l,
+        acc
+      ),
+      do: count_x_mas(l |> Enum.map(&tl/1), acc + 1)
+
+  def count_x_mas(
+        [
+          ["M", _, "M" | _],
+          [_, "A", _ | _],
+          ["S", _, "S" | _]
+        ] = l,
+        acc
+      ),
+      do: count_x_mas(l |> Enum.map(&tl/1), acc + 1)
+
+  def count_x_mas(
+        [
+          ["S", _, "S" | _],
+          [_, "A", _ | _],
+          ["M", _, "M" | _]
+        ] = l,
+        acc
+      ),
+      do: count_x_mas(l |> Enum.map(&tl/1), acc + 1)
+
+  def count_x_mas(
+        l,
+        acc
+      ),
+      do: count_x_mas(l |> Enum.map(&tl/1), acc)
+
+  def part2(m), do: part2(m, 0)
+
+  def part2([r1, r2, r3 | _] = m, sum) do
+    part2(tl(m), sum + count_x_mas([r1, r2, r3]))
+  end
+
+  def part2(_, sum), do: sum
 end

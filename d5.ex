@@ -29,7 +29,19 @@ defmodule D5 do
   def part1({orders, updates}) do
     updates
     |> Enum.filter(&correct_order?(&1, orders))
-    |> IO.inspect()
+    |> Enum.map(fn l -> l |> Enum.at(length(l) |> div(2)) end)
+    |> Enum.map(&String.to_integer/1)
+    |> Enum.sum()
+  end
+
+  def sort_update(l, orders) do
+    l |> Enum.sort(&(&2 in Map.get(orders, &1, [])))
+  end
+
+  def part2({orders, updates}) do
+    updates
+    |> Enum.filter(fn l -> not correct_order?(l, orders) end)
+    |> Enum.map(&sort_update(&1, orders))
     |> Enum.map(fn l -> l |> Enum.at(length(l) |> div(2)) end)
     |> Enum.map(&String.to_integer/1)
     |> Enum.sum()

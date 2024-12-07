@@ -26,10 +26,12 @@ defmodule D5 do
     |> Enum.all?()
   end
 
+  def take_middle(l), do: l |> Enum.at(length(l) |> div(2))
+
   def part1({orders, updates}) do
     updates
     |> Enum.filter(&correct_order?(&1, orders))
-    |> Enum.map(fn l -> l |> Enum.at(length(l) |> div(2)) end)
+    |> Enum.map(&take_middle/1)
     |> Enum.map(&String.to_integer/1)
     |> Enum.sum()
   end
@@ -42,7 +44,7 @@ defmodule D5 do
     updates
     |> Enum.filter(fn l -> not correct_order?(l, orders) end)
     |> Enum.map(&sort_update(&1, orders))
-    |> Enum.map(fn l -> l |> Enum.at(length(l) |> div(2)) end)
+    |> Enum.map(&take_middle/1)
     |> Enum.map(&String.to_integer/1)
     |> Enum.sum()
   end

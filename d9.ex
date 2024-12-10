@@ -67,7 +67,7 @@ defmodule D9 do
   def blocks_map([], acc, _, _), do: acc
 
   def blocks_map([f], acc, id, pos) do
-    {m1, pos} = chunk_consec(id, f, pos)
+    {m1, _} = chunk_consec(id, f, pos)
     [m1 | acc]
   end
 
@@ -78,47 +78,104 @@ defmodule D9 do
   end
 
   # "."=>[1,2], "." => [5,6]
-  def merge(acc, m) do
-    Map.merge(acc, m, fn _k, acc, m -> [m | acc] end)
+  def merge(m1, m2) do
+    Map.merge(m1, m2, fn _k, v1, v2 -> MapSet.union(v1, v2) end)
   end
 
   # 12345 -> {0=>[0], "."=>[1,2]}
+  def chunk_consec(".", 0, pos) do
+    {%{"." => MapSet.new()}, pos}
+  end
+
   def chunk_consec(".", n, pos) do
     l = Stream.iterate(pos, &(&1 + 1)) |> Enum.take(n)
-    {%{"." => l}, (l |> Enum.reverse() |> hd()) + 1}
+    {%{"." => MapSet.new([l])}, List.last(l) + 1}
   end
 
   def chunk_consec(id, n, pos) do
     l = Stream.iterate(pos, &(&1 + 1)) |> Enum.take(n)
-    {%{id => l}, (l |> Enum.reverse() |> hd()) + 1}
+    {%{id => l}, List.last(l) + 1}
   end
 
-  @doc """
+  @doc ~S"""
   00...111...2...333.44.5555.6666.777.888899
   0099.111...2...333.44.5555.6666.777.8888..
   0099.1117772...333.44.5555.6666.....8888..
   0099.111777244.333....5555.6666.....8888..
   00992111777.44.333....5555.6666.....8888..
+
+  ## Examples
+    iex> D9.swap_sections(chunks, [36, 37, 38, 39])
+    {[36, 37, 38, 39],
+    MapSet.new([
+    [2, 3, 4],
+    [8, 9, 10],
+    [12, 13, 14],
+    [18],
+    [21],
+    [26],
+    [31],
+    [35]
+    ])}
+
+    iex(127)> D9.swap_sections(chunks, [41,42])
+    {[2, 3],
+    MapSet.new([
+      [4],
+      [8, 9, 10],
+      [12, 13, 14],
+      [18],
+      [21],
+      [26],
+      [31],
+      [35]
+    ])}
+
+
   """
   def swap_sections(chunks, s) do
     l = length(s)
-    res = chunks |> Enum.sort() |> Enum.find(fn c -> length(c) >= l end)
+    res = chunks |> Enum.sort() |> Enum.find([], fn c -> length(c) >= l end)
 
     cond do
-      length(res) > l and hd(res) > hd(l) ->
+      length(res) > l and hd(res) < hd(s) ->
         new = res |> Enum.drop(l)
-        {res, chunks |> MapSet.delete(res) |> MapSet.put(new)}
+        {res |> Enum.take(l), chunks |> MapSet.delete(res) |> MapSet.put(new)}
+
+      length(res) == l and hd(res) < hd(s) ->
+        {res |> Enum.take(l), chunks |> MapSet.delete(res)}
 
       :else ->
         {s, chunks}
     end
   end
 
-  def fill_chunk(m, l) do
-    s = Map.get(m, l)
+  def fill_chunk(m, id) do
+    {new_section, new_chunks} = swap_sections(Map.get(m, "."), Map.get(m, id))
+    m |> Map.put(id, new_section) |> Map.put(".", new_chunks)
+  end
+
+  def mul_sum(k, l) do
+    l
+    |> Enum.map(fn n -> n * k end)
+    |> Enum.sum()
   end
 
   def part2(filename) do
-    File.read!(filename) |> D9.parse() |> D9.blocks_map()
+    m =
+      File.read!(filename)
+      |> D9.parse()
+      |> D9.blocks_map()
+      |> Enum.reduce(%{}, &merge/2)
+
+    largest_id = m |> Map.delete(".") |> Map.keys() |> Enum.max()
+
+    m =
+      largest_id..0
+      |> Enum.reduce(m, fn i, m -> fill_chunk(m, i) end)
+      |> Map.delete(".")
+      |> Enum.reduce(0, fn {k, v}, acc -> mul_sum(k, v) + acc end)
+
+    m
   end
 end
